@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browse Site Sandbox"
+  short_description: "Explore websites with browser-sandbox"
+  default_prompt: "Use $browse-site-sandbox to explore this URL and report the key page structure, interactions, and findings."
