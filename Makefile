@@ -26,6 +26,14 @@ docker-run: docker-build ## Build then run the container (SSE endpoint)
 	docker run --rm --init --shm-size 1g -p $(PORT):8080 \
 		-e MCP_TRANSPORT=sse -e MCP_BASE_URL=http://localhost:$(PORT) $(IMAGE)
 
+.PHONY: test
+test: ## Run unit tests
+	go test ./...
+
+.PHONY: test-race
+test-race: ## Run unit tests with the race detector
+	go test -race ./...
+
 .PHONY: tidy
 tidy: ## Sync go.mod / go.sum
 	go mod tidy
