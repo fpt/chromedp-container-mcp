@@ -107,15 +107,11 @@ func SetCookieHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		return mcp.NewToolResultError("SameSite=None requires Secure=true"), nil
 	}
 
-	instance, err := mcpcdp.Manager.GetInstance(id)
-
-	if err != nil {
-		return nil, fmt.Errorf("fail to get instance: %v", err)
-	}
-
-	chromeCtx := instance.Context
-
-	err = chromedp.Run(chromeCtx,
+	// Route through Manager.Execute so the action holds the instance's runMu
+	// (and the configured execute timeout), like every other handler. A bare
+	// chromedp.Run on instance.Context would race a concurrent action on the
+	// same instance, since a chromedp context serves one action sequence at a time.
+	err := mcpcdp.Manager.Execute(id,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			// Build basic SetCookie command
 			cookieCmd := network.SetCookie(name, value).

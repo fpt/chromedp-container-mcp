@@ -26,6 +26,10 @@ services:
       # ERR_CERT_AUTHORITY_INVALID. Tell Chrome to proceed past cert errors. Set
       # to "false" (or remove) on networks without TLS interception.
       CHROME_IGNORE_CERT_ERRORS: "true"
+      # When the container can only reach the internet via a corporate proxy,
+      # point Chrome at it (it ignores http_proxy/HTTPS_PROXY and needs the
+      # --proxy-server flag). Remove on networks with direct egress.
+      CHROME_PROXY_SERVER: "http://proxy:3128"
     # Reap zombie Chrome child processes (PID 1 problem).
     init: true
     # Chrome can crash with BUS_ADRERR on the default 64MB /dev/shm. The server

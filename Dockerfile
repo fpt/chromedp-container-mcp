@@ -36,11 +36,17 @@ FROM chromedp/headless-shell:latest
 
 COPY --from=build /out/chromedp-container-mcp /usr/local/bin/chromedp-container-mcp
 
+# CHROME_PROXY_SERVER is the default for the create-chrome-instance `proxy-server`
+# flag. Set it when the container's only route to the internet is a corporate
+# proxy (Chrome ignores http_proxy/HTTPS_PROXY, so it needs the --proxy-server
+# flag). Empty by default; override at run time, e.g.
+#   -e CHROME_PROXY_SERVER=http://proxy:3128
 ENV MCP_HOST=0.0.0.0 \
     MCP_PORT=8080 \
     CHROME_MAXIMUM_INSTANCE=5 \
     CHROME_TTL=15 \
-    CHROME_EXE_TIMEOUT=300
+    CHROME_EXE_TIMEOUT=300 \
+    CHROME_PROXY_SERVER=""
 
 EXPOSE 8080
 

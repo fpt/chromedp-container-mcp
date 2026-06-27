@@ -39,6 +39,9 @@ func NewCreateInstanceTool() mcp.Tool {
 		mcp.WithBoolean("ignore-certificate-errors",
 			mcp.Description("Ignore TLS certificate errors. Needed behind a corporate proxy that intercepts TLS (e.g. Zscaler), where Chrome would otherwise fail with ERR_CERT_AUTHORITY_INVALID. Defaults to the CHROME_IGNORE_CERT_ERRORS env var (false if unset)."),
 			),
+		mcp.WithString("proxy-server",
+			mcp.Description("Route Chrome traffic through this proxy, e.g. \"http://proxy.host:3128\". Needed when the container's network can only reach the internet via a corporate proxy. Chrome ignores http_proxy/HTTPS_PROXY env vars, so this maps to the --proxy-server launch flag. Defaults to the CHROME_PROXY_SERVER env var (no proxy if unset)."),
+			),
 		mcp.WithBoolean("no-sandbox",
 			mcp.Description("Disable Chrome sandbox, required when running as root in containers (default: true)"),
 			),
@@ -75,6 +78,9 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	// intercepting proxy (Zscaler) can enable it image-wide, while staying
 	// off by default elsewhere. A per-call value still overrides the env.
 	ignoreCertErrors := request.GetBool("ignore-certificate-errors", os.Getenv("CHROME_IGNORE_CERT_ERRORS") == "true")
+	// Default from CHROME_PROXY_SERVER so a deployment whose only route to the
+	// internet is a corporate proxy can set it image-wide. Empty => no flag.
+	proxyServer := request.GetString("proxy-server", os.Getenv("CHROME_PROXY_SERVER"))
 	noSandbox := request.GetBool("no-sandbox", true)
 	disableDevShmUsage := request.GetBool("disable-dev-shm-usage", true)
 	disableBackgroundTimerThrottling := request.GetBool("disable-background-timer-throttling", false)
@@ -98,7 +104,13 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	chromedp.Flag("disable-backgrounding-occluded-windows", disableBackgroundingOccludedWindows), // Disable backgrounding occluded windows
 	chromedp.Flag("disable-renderer-backgrounding", disableRendererBackgrounding),        // Disable renderer backgrounding
 )
-	
+
+	// Only set --proxy-server when a proxy is configured; an empty value would
+	// otherwise tell Chrome to use a blank proxy and break all navigation.
+	if proxyServer != "" {
+		allocOpts = append(allocOpts, chromedp.ProxyServer(proxyServer))
+	}
+
 	id,_,err := cdp.Manager.CreateVisibleInstance(allocOpts)
 
 	if err != nil {

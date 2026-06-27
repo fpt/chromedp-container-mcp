@@ -113,6 +113,7 @@ All configuration is via environment variables:
 | `CHROME_TTL`              | `15`                    | Idle timeout (minutes) before an instance is reaped |
 | `CHROME_EXE_TIMEOUT`      | `300`                   | Per-action timeout (seconds) |
 | `CHROME_IGNORE_CERT_ERRORS` | `false`               | Default for the `ignore-certificate-errors` instance flag. Set to `true` behind a TLS-intercepting corporate proxy (e.g. Zscaler), where Chrome otherwise fails navigation with `ERR_CERT_AUTHORITY_INVALID`. |
+| `CHROME_PROXY_SERVER`     | _(empty)_               | Default for the `proxy-server` instance flag. Set when the container can only reach the internet through a corporate proxy, e.g. `http://proxy.host:3128`. Chrome ignores `http_proxy`/`HTTPS_PROXY`, so this maps to its `--proxy-server` launch flag. |
 
 > **Behind a corporate proxy (Zscaler etc.):** the proxy substitutes its own TLS
 > certificate, which the in-container Chrome does not trust, so `navigate` fails
@@ -121,6 +122,11 @@ All configuration is via environment variables:
 > single `create-chrome-instance` call. This disables TLS verification for that
 > browser, which is acceptable for a browsing sandbox but should stay off on
 > networks without TLS interception.
+>
+> If the container has **no direct internet egress** and must go through the
+> proxy, also set `CHROME_PROXY_SERVER` (e.g. `http://proxy.host:3128`) or pass
+> `proxy-server` to `create-chrome-instance` — Chrome does not honor
+> `http_proxy`/`HTTPS_PROXY` and needs the `--proxy-server` flag.
 
 > **Note:** when the host port differs from the container port (e.g.
 > `-p 8765:8080`), set `MCP_BASE_URL` to the host-side URL so the message
