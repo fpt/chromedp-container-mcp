@@ -2,7 +2,9 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	mcpcdp "chromedp-container-mcp/chromedp"
@@ -11,6 +13,17 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/mark3labs/mcp-go/mcp"
 )
+
+// isXPathSelector reports whether sel looks like an XPath expression rather than
+// a CSS selector. chromedp's BySearch handles both, but raw document.querySelector
+// does not — so JS that resolves an element must branch on this.
+func isXPathSelector(sel string) bool {
+	t := strings.TrimSpace(sel)
+	return strings.HasPrefix(t, "/") ||
+		strings.HasPrefix(t, "(/") ||
+		strings.HasPrefix(t, "./") ||
+		strings.HasPrefix(t, "(.//")
+}
 
 func NewClickElementTool() mcp.Tool {
 	return mcp.NewTool("click-element",
@@ -148,41 +161,70 @@ func performClick(ctx context.Context, instanceID, selector string, timeoutSec i
 }
 
 	
-// verifyClickSuccess checks if the click was successful and provides feedback
+// verifyClickSuccess checks if the click was successful and provides feedback.
+//
+// The selector and clickType are passed into the page as JSON-encoded string
+// literals (never string-interpolated into the JS source): an XPath such as
+// //a[contains(text(),'foo')] contains quotes/parens that would otherwise break
+// the script with "SyntaxError: missing ) after argument list". The element is
+// resolved with document.evaluate for XPath and document.querySelector for CSS,
+// since querySelector cannot handle XPath at all.
 func verifyClickSuccess(instanceID, selector, clickType string) (string, error) {
 	var result string
-	
+
 	// Get element information after click
 	err := mcpcdp.Manager.Execute(instanceID,
-		chromedp.Evaluate(fmt.Sprintf(`
+		chromedp.Evaluate(verifyClickJS(selector, clickType), &result),
+	)
+
+	if err != nil {
+		return "", fmt.Errorf("failed to verify click result: %w", err)
+	}
+
+	return result, nil
+}
+
+// verifyClickJS builds the in-page script that inspects the clicked element.
+// selector and clickType are injected as JSON-encoded string literals so quotes
+// or parens in an XPath can't break the script; the element is resolved with
+// document.evaluate for XPath and document.querySelector for CSS.
+func verifyClickJS(selector, clickType string) string {
+	selJSON, _ := json.Marshal(selector)
+	ctJSON, _ := json.Marshal(clickType)
+	return fmt.Sprintf(`
 			(() => {
+				const SELECTOR = %s;
+				const CLICK_TYPE = %s;
+				const IS_XPATH = %t;
 				try {
-					const element = document.querySelector('%s');
+					const element = IS_XPATH
+						? document.evaluate(SELECTOR, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue
+						: document.querySelector(SELECTOR);
 					if (!element) {
 						return JSON.stringify({
 							success: false,
 							message: 'Element no longer exists after click',
-							selector: '%s'
+							selector: SELECTOR
 						});
 					}
 
 					const elementInfo = {
 						success: true,
 						message: 'Click action completed successfully',
-						selector: '%s',
-						clickType: '%s',
+						selector: SELECTOR,
+						clickType: CLICK_TYPE,
 						elementInfo: {
 							tag: element.tagName.toLowerCase(),
 							id: element.id || 'none',
 							className: element.className || 'none',
 							disabled: element.disabled || false,
 							visible: element.offsetParent !== null,
-							text: element.textContent.trim().substring(0, 50)
+							text: (element.textContent || '').trim().substring(0, 50)
 						}
 					};
 
 					// Check if it's a form element and provide additional info
-					if (element.tagName.toLowerCase() === 'input' || 
+					if (element.tagName.toLowerCase() === 'input' ||
 						element.tagName.toLowerCase() === 'button' ||
 						element.tagName.toLowerCase() === 'select') {
 						elementInfo.elementInfo.value = element.value || '';
@@ -199,18 +241,11 @@ func verifyClickSuccess(instanceID, selector, clickType string) (string, error) 
 					return JSON.stringify({
 						success: false,
 						message: 'Error verifying click: ' + error.message,
-						selector: '%s'
+						selector: SELECTOR
 					});
 				}
 			})()
-		`, selector, selector, selector, clickType, selector), &result),
-	)
-
-	if err != nil {
-		return "", fmt.Errorf("failed to verify click result: %w", err)
-	}
-
-	return result, nil
+		`, selJSON, ctJSON, isXPathSelector(selector))
 }
 
 

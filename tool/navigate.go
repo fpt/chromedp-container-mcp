@@ -2,7 +2,9 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	cdp "chromedp-container-mcp/chromedp"
 
@@ -21,8 +23,11 @@ func NewNavigateTool() mcp.Tool {
 			mcp.Required(),
 			mcp.Description("Chrome instance id"),
 			),
-		mcp.WithNumber("depth", 
+		mcp.WithNumber("depth",
 			 mcp.Description("Maximum DOM tree depth to traverse (default: 5)"),
+			),
+		mcp.WithString("selector",
+			mcp.Description("Optional CSS selector or XPath to scope the returned DOM tree to one subtree (e.g. '#progress_list', '//main'). When set, traversal starts from the first matching element instead of <body>, so you can request a high depth for the part you care about without serializing the whole (often heavy/ad-laden) page and timing out."),
 			),
 		)
 }
@@ -43,12 +48,12 @@ func NavigateHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 
 	depth := max(request.GetInt("depth", 5), 0)
 
-
+	selector := request.GetString("selector", "")
 
 	var cleanHTML string
 	err := cdp.Manager.Execute(id,
 		chromedp.Navigate(url),
-		chromedp.Evaluate(cleanElement(depth), &cleanHTML),
+		chromedp.Evaluate(cleanElement(depth, selector), &cleanHTML),
 		)
 
 	if (err != nil) {
@@ -116,11 +121,21 @@ func NavigateForwardHandler(ctx context.Context, request mcp.CallToolRequest) (*
 	return mcp.NewToolResultText(fmt.Sprintf("Navigate forward success, current url: %s", url)), nil
 }
 
-func cleanElement(depth int) string {
+func cleanElement(depth int, selector string) string {
+    // Encode the selector as a JS string literal so quotes/parens in an XPath
+    // (e.g. //a[contains(text(),'x')]) can't break the script. Empty => <body>.
+    selJSON, _ := json.Marshal(selector)
+    isXPath := false
+    if t := strings.TrimSpace(selector); t != "" {
+        isXPath = strings.HasPrefix(t, "/") || strings.HasPrefix(t, "(/") ||
+            strings.HasPrefix(t, "./") || strings.HasPrefix(t, "(.//")
+    }
     return fmt.Sprintf(`
         (() => {
             const MAX_DEPTH = %d;
-            
+            const SELECTOR = %s;
+            const IS_XPATH = %t;
+
             // Dangerous protocols to filter
             const DANGEROUS_PROTOCOLS = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:', 'blob:'];
             
@@ -192,8 +207,17 @@ func cleanElement(depth int) string {
                 return newEl.outerHTML;
             }
             
-            return cleanForLLM(document.body, 0);
+            let root = document.body;
+            if (SELECTOR) {
+                root = IS_XPATH
+                    ? document.evaluate(SELECTOR, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue
+                    : document.querySelector(SELECTOR);
+                if (!root) {
+                    return '[selector not found: ' + SELECTOR + ']';
+                }
+            }
+            return cleanForLLM(root, 0);
         })()
-    `, depth)
+    `, depth, selJSON, isXPath)
 }
 

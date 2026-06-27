@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -32,6 +33,12 @@ type ChromeInstance struct {
 	// one action sequence at a time, so concurrent tool calls against the same
 	// instance must be serialized rather than racing on the same target.
 	runMu sync.Mutex
+	// inFlight counts actions currently executing on this instance. The idle
+	// reaper (cleanupExpiredInstances) and GetInstance's expiry check must never
+	// cancel an instance while an action is running on it: LastUsed is stamped at
+	// action *start*, so a single action slower than the TTL would otherwise get
+	// its own context cancelled mid-run, surfacing as "chrome instance not found".
+	inFlight atomic.Int32
 }
 
 var Manager ChromeManager
@@ -127,8 +134,10 @@ func (cm *ChromeManager) GetInstance(id string) (*ChromeInstance, error) {
 		return nil, errors.New("chrome instance not found; it may have timed out or been closed, create a new instance first")
 	}
 	
-	// Check if instance has been idle for too long
-	if time.Since(instance.LastUsed) > instance.TTL {
+	// Check if instance has been idle for too long. Never expire an instance with
+	// an action in flight — its LastUsed is stamped at action start, so a long
+	// action could otherwise look "idle" and have its live context cancelled.
+	if instance.inFlight.Load() == 0 && time.Since(instance.LastUsed) > instance.TTL {
 		// Clean up idle instance
 		instance.Cancel()
 		delete(cm.instances, id)
@@ -229,9 +238,11 @@ func (cm *ChromeManager) cleanupExpiredInstances() {
 	now := time.Now()
 	idleIDs := make([]string, 0)
 	
-	// Find all idle instances (based on LastUsed)
+	// Find all idle instances (based on LastUsed). Skip any with an action in
+	// flight: cancelling a busy instance's context would abort a running tool
+	// call and surface as "chrome instance not found" to the caller.
 	for id, instance := range cm.instances {
-		if now.Sub(instance.LastUsed) > instance.TTL {
+		if instance.inFlight.Load() == 0 && now.Sub(instance.LastUsed) > instance.TTL {
 			idleIDs = append(idleIDs, id)
 		}
 	}
@@ -257,17 +268,36 @@ func (cm *ChromeManager) Execute(id string, actions ...chromedp.Action) error {
 	instance.runMu.Lock()
 	defer instance.runMu.Unlock()
 
+	// Mark the instance busy so the reaper won't cancel its context mid-action,
+	// and refresh the idle clock when the action finishes (LastUsed otherwise
+	// only reflects action start, leaving a long action looking idle).
+	instance.inFlight.Add(1)
+	defer func() {
+		instance.inFlight.Add(-1)
+		cm.touch(id)
+	}()
+
 	done := make(chan error, 1)
 
 	go func() {
 		done <- chromedp.Run(instance.Context, actions...)
 	}()
-	
+
 	select {
 	case err := <-done:
 		return err
 	case <-time.After(cm.executeTimeout):
 		return fmt.Errorf("chromedp execute timeout: %v", cm.executeTimeout)
+	}
+}
+
+// touch refreshes an instance's idle timer. Called when an action completes so
+// the TTL measures time since the last action *finished*, not since it started.
+func (cm *ChromeManager) touch(id string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	if instance, ok := cm.instances[id]; ok {
+		instance.LastUsed = time.Now()
 	}
 }
 
@@ -277,9 +307,15 @@ func (cm *ChromeManager) ExecuteWithTimeout(id string, timeout time.Duration, ac
 	if err != nil {
 		return err
 	}
-	
+
 	instance.runMu.Lock()
 	defer instance.runMu.Unlock()
+
+	instance.inFlight.Add(1)
+	defer func() {
+		instance.inFlight.Add(-1)
+		cm.touch(id)
+	}()
 
 	ctx, cancel := context.WithTimeout(instance.Context, timeout)
 	defer cancel()

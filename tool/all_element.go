@@ -17,8 +17,11 @@ func NewAllElementTool() mcp.Tool {
 			mcp.Required(),
 			mcp.Description("Chrome instance id"),
 			),
-		mcp.WithNumber("depth", 
+		mcp.WithNumber("depth",
 			 mcp.Description("Maximum DOM tree depth to traverse (default: 5)"),
+			),
+		mcp.WithString("selector",
+			mcp.Description("Optional CSS selector or XPath to scope the returned DOM tree to one subtree (e.g. '#progress_list', '//main'). When set, traversal starts from the first matching element instead of <body>, so you can request a high depth for just that part without serializing the whole page and timing out."),
 			),
 		)
 }
@@ -32,12 +35,14 @@ func AllElementHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.C
 
 	depth := max(request.GetInt("depth", 5), 0)
 
+	selector := request.GetString("selector", "")
+
 	var cleanHTML string
-	
+
 	err := mcpcdp.Manager.Execute(id,
 		chromedp.Sleep(500*time.Millisecond),
 		chromedp.WaitReady("body"),
-		chromedp.Evaluate(cleanElement(depth), &cleanHTML),
+		chromedp.Evaluate(cleanElement(depth, selector), &cleanHTML),
 		// chromedp.Evaluate(`
 		// 	(() => {
 		// 		function cleanElement(element) {
