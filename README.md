@@ -1,7 +1,9 @@
 # chromedp-container-mcp
 
 A standalone, self-contained **headless-browsing sandbox** exposed as an
-[MCP](https://modelcontextprotocol.io) server over the **SSE** transport.
+[MCP](https://modelcontextprotocol.io) server. It speaks **stdio** by default
+(launch the container as a subprocess) and can also serve an **SSE** HTTP
+endpoint.
 
 The container bundles both halves:
 
@@ -16,7 +18,53 @@ inside the same container — there is nothing else to run.
 
 Built against current dependencies: `mcp-go v0.55.1`, `chromedp v0.15.1`.
 
-## Quick start
+## Quick start (stdio — default)
+
+Build the image, then point an MCP client at it. The client launches the
+container per session and talks JSON-RPC over stdin/stdout:
+
+```bash
+docker build -t chromedp-container-mcp:latest .
+```
+
+With the [Claude Code](https://docs.claude.com/en/docs/claude-code) CLI
+(everything after `--` is the command it launches per session):
+
+```bash
+claude mcp add browser-sandbox -- \
+  docker run -i --rm --init --shm-size 1g chromedp-container-mcp:latest
+```
+
+Or by hand in any MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "browser-sandbox": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init", "--shm-size", "1g",
+        "chromedp-container-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+`-i` keeps stdin open for the protocol; `--init` reaps Chrome's child processes
+(PID 1 problem); `--shm-size 1g` avoids Chrome crashing on the default 64 MB
+`/dev/shm`. In stdio mode no port is published and `MCP_HOST` / `MCP_PORT` /
+`MCP_BASE_URL` are ignored; logs go to stderr so they don't corrupt the
+protocol stream.
+
+A typical session: call `create-chrome-instance` (returns an instance `id`),
+pass that `id` to `navigate` / `click-element` / `screenshot` / etc., then
+`close` when finished. Idle instances are reaped automatically after
+`CHROME_TTL` minutes.
+
+## SSE transport
+
+To run a long-lived HTTP/SSE endpoint instead, set `MCP_TRANSPORT=sse`:
 
 ```bash
 docker compose up --build
@@ -27,20 +75,19 @@ docker compose up --build
 Or with plain Docker:
 
 ```bash
-docker build -t chromedp-container-mcp:latest .
 docker run --rm --init --shm-size 1g -p 8080:8080 \
-  -e MCP_BASE_URL=http://localhost:8080 \
+  -e MCP_TRANSPORT=sse -e MCP_BASE_URL=http://localhost:8080 \
   chromedp-container-mcp:latest
 ```
 
-`--init` reaps Chrome's child processes (PID 1 problem); `--shm-size 1g`
-avoids Chrome crashing on the default 64 MB `/dev/shm`.
+Register the running endpoint with the Claude Code CLI:
 
-## Connecting a client
+```bash
+claude mcp add --transport sse browser-sandbox http://localhost:8080/sse
+```
 
-This server speaks the MCP **SSE** transport. A client opens `GET /sse`, reads
-the `endpoint` event to learn its per-session message URL, then POSTs JSON-RPC
-to that URL. Example client config:
+A client opens `GET /sse`, reads the `endpoint` event to learn its per-session
+message URL, then POSTs JSON-RPC to that URL. Equivalent manual config:
 
 ```json
 {
@@ -52,20 +99,16 @@ to that URL. Example client config:
 }
 ```
 
-A typical session: call `create-chrome-instance` (returns an instance `id`),
-pass that `id` to `navigate` / `click-element` / `screenshot` / etc., then
-`close` when finished. Idle instances are reaped automatically after
-`CHROME_TTL` minutes.
-
 ## Configuration
 
 All configuration is via environment variables:
 
 | Variable                  | Default                 | Description |
 |---------------------------|-------------------------|-------------|
-| `MCP_HOST`                | `0.0.0.0`               | Bind address |
-| `MCP_PORT`                | `8080`                  | Listen port |
-| `MCP_BASE_URL`            | `http://<host>:<port>`  | URL advertised to SSE clients in the `endpoint` event. Set to the externally reachable address when behind a reverse proxy or a remapped Docker port. |
+| `MCP_TRANSPORT`           | `stdio`                 | `stdio` (subprocess over stdin/stdout) or `sse` (HTTP endpoint) |
+| `MCP_HOST`                | `0.0.0.0`               | Bind address (SSE only) |
+| `MCP_PORT`                | `8080`                  | Listen port (SSE only) |
+| `MCP_BASE_URL`            | `http://<host>:<port>`  | SSE only. URL advertised to clients in the `endpoint` event. Set to the externally reachable address when behind a reverse proxy or a remapped Docker port. |
 | `CHROME_MAXIMUM_INSTANCE` | `5`                     | Max concurrent Chrome instances |
 | `CHROME_TTL`              | `15`                    | Idle timeout (minutes) before an instance is reaped |
 | `CHROME_EXE_TIMEOUT`      | `300`                   | Per-action timeout (seconds) |

@@ -77,19 +77,32 @@ func main() {
 	s.AddTool(tool.NewScreenshotTool(), tool.ScreenshotHandler)
 	s.AddTool(tool.NewPdfTool(), tool.GenPdfHandler)
 
-	host := env("MCP_HOST", "0.0.0.0")
-	port := env("MCP_PORT", "8080")
-	addr := host + ":" + port
+	// MCP_TRANSPORT selects the transport: "stdio" (default) speaks JSON-RPC
+	// over stdin/stdout for clients that launch the container as a subprocess
+	// (docker run -i --rm ...); "sse" serves an HTTP/SSE endpoint instead.
+	switch env("MCP_TRANSPORT", "stdio") {
+	case "sse":
+		host := env("MCP_HOST", "0.0.0.0")
+		port := env("MCP_PORT", "8080")
+		addr := host + ":" + port
 
-	// baseURL is advertised to clients in the SSE "endpoint" event so they know
-	// where to POST messages. Override with MCP_BASE_URL when behind a proxy.
-	baseURL := env("MCP_BASE_URL", "http://"+addr)
+		// baseURL is advertised to clients in the SSE "endpoint" event so they
+		// know where to POST messages. Override with MCP_BASE_URL behind a proxy.
+		baseURL := env("MCP_BASE_URL", "http://"+addr)
 
-	sse := server.NewSSEServer(s, server.WithBaseURL(baseURL))
+		sse := server.NewSSEServer(s, server.WithBaseURL(baseURL))
 
-	log.Printf("chromedp-container-mcp listening on %s — SSE endpoint: %s/sse, messages: %s/message",
-		addr, baseURL, baseURL)
-	if err := sse.Start(addr); err != nil {
-		log.Fatalf("server error: %v", err)
+		log.Printf("chromedp-container-mcp listening on %s — SSE endpoint: %s/sse, messages: %s/message",
+			addr, baseURL, baseURL)
+		if err := sse.Start(addr); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
+	default:
+		// Logs go to stderr so they never corrupt the JSON-RPC stream on stdout.
+		log.SetOutput(os.Stderr)
+		log.Printf("chromedp-container-mcp serving on stdio")
+		if err := server.ServeStdio(s); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
 	}
 }
