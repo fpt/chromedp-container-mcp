@@ -4,7 +4,7 @@ description: >-
   Explore / read / scrape a website with the browser-sandbox MCP tools (this
   project's chromedp container) and report what's there. Use when the user asks
   to open, browse, explore, screenshot, search, or extract content from a URL
-  via the sandbox. Covers the Zscaler TLS workaround, the create→navigate→
+  via the sandbox. Covers the TLS workaround, the create→navigate→
   interact→close tool flow, driving dynamic/AJAX pages, and offloading oversized
   tool outputs to a summarizer subagent so the page content never floods the
   main context.
@@ -33,9 +33,9 @@ tools are deferred — load them with ToolSearch before calling, e.g.
 
 The rest of this skill is the loop both patterns use.
 
-## 1. Always start Chrome with the Zscaler workaround
+## 1. Always start Chrome with the TLS workaround
 
-We are behind Zscaler, which intercepts TLS. The container Chrome does not trust
+We are behind a corporate proxy, which intercepts TLS. The container Chrome does not trust
 the corporate CA, so navigation fails with `ERR_CERT_AUTHORITY_INVALID` unless
 you defeat cert verification. **Create every instance with
 `ignore-certificate-errors: true`:**

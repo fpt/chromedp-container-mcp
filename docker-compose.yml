@@ -2,8 +2,8 @@ services:
   chromedp-mcp:
     build:
       context: .
-      # Zscaler etc. corporate proxy CA, injected as a build secret. Run
-      # `make certs.pem` first (copies ~/.zscaler/certs.pem, or an empty
+      # corporate proxy CA, injected as a build secret. Run
+      # `make certs.pem` first (copies ~/.corp-ca/certs.pem, or an empty
       # file when absent — the Dockerfile then skips the cert install).
       secrets:
         - ca_cert
@@ -21,15 +21,18 @@ services:
       CHROME_MAXIMUM_INSTANCE: "5"
       CHROME_TTL: "15"
       CHROME_EXE_TIMEOUT: "300"
-      # Behind a TLS-intercepting corporate proxy (Zscaler), Chrome cannot verify
-      # the substituted certificate and fails navigation with
-      # ERR_CERT_AUTHORITY_INVALID. Tell Chrome to proceed past cert errors. Set
-      # to "false" (or remove) on networks without TLS interception.
-      CHROME_IGNORE_CERT_ERRORS: "true"
-      # When the container can only reach the internet via a corporate proxy,
-      # point Chrome at it (it ignores http_proxy/HTTPS_PROXY and needs the
-      # --proxy-server flag). Remove on networks with direct egress.
-      CHROME_PROXY_SERVER: "http://proxy:3128"
+      # Corporate-proxy options — opt-in, off by default so a normal
+      # `docker compose up` works on any network. Enable them in your shell, e.g.
+      #   CHROME_IGNORE_CERT_ERRORS=true CHROME_PROXY_SERVER=http://proxy:3128 docker compose up
+      #
+      # CHROME_IGNORE_CERT_ERRORS: behind a TLS-intercepting proxy, Chrome cannot
+      # verify the substituted certificate and fails navigation with
+      # ERR_CERT_AUTHORITY_INVALID; "true" tells it to proceed past cert errors.
+      CHROME_IGNORE_CERT_ERRORS: "${CHROME_IGNORE_CERT_ERRORS:-false}"
+      # CHROME_PROXY_SERVER: when the container can only reach the internet via a
+      # corporate proxy (Chrome ignores http_proxy/HTTPS_PROXY and needs the
+      # --proxy-server flag). Empty = direct egress.
+      CHROME_PROXY_SERVER: "${CHROME_PROXY_SERVER:-}"
     # Reap zombie Chrome child processes (PID 1 problem).
     init: true
     # Chrome can crash with BUS_ADRERR on the default 64MB /dev/shm. The server

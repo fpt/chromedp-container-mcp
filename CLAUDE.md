@@ -25,7 +25,7 @@ based on `chromedp/headless-shell`, and is registered as an MCP server via
 
 - `make build` — local binary (needs Chrome on PATH to actually run).
 - `make docker-build` — builds the image. Depends on the `certs.pem` target and
-  passes `--secret id=ca_cert,src=certs.pem` (Zscaler; see below).
+  passes `--secret id=ca_cert,src=certs.pem` (corporate-proxy CA; see below).
 - `make docker-run` — build + run.
 - `make tidy` / `make vet`.
 
@@ -33,13 +33,13 @@ After changing server code, the image must be **rebuilt** *and* the MCP server
 **reconnected** for a live session to pick it up — the running server is a
 long-lived container started at connect time; a rebuild alone does nothing to it.
 
-## Behind a corporate proxy (Zscaler) — two separate layers
+## Behind a corporate proxy — two separate layers
 
-We are behind Zscaler, which intercepts TLS. This breaks two different things:
+We are behind a corporate proxy, which intercepts TLS. This breaks two different things:
 
 1. **Build-time** (`go mod download` reaching proxy.golang.org). The build stage
    installs a CA via a BuildKit secret: `make certs.pem` copies
-   `~/.zscaler/certs.pem`, and the Dockerfile does
+   `~/.corp-ca/certs.pem`, and the Dockerfile does
    `--mount=type=secret,id=ca_cert ... update-ca-certificates` (skipped if the
    secret is absent, e.g. CI). Never bake the cert into a layer or commit it
    (`certs.pem` is gitignored).
@@ -88,7 +88,7 @@ truth for safety:
 
 - `pdf.go` builds its own ephemeral Chrome and **ignores** the
   `ignore-certificate-errors` flag and the managed instance — so `generate_pdf`
-  from a URL fails behind Zscaler and won't share cookies/session with an
+  from a URL fails behind a TLS-intercepting proxy and won't share cookies/session with an
   explored instance. Known, unfixed.
 - The `chromedp/headless-shell` image runs Chrome as a remote-debugging server;
   its one-shot CLI modes (`--dump-dom`, `--screenshot`) don't reliably emit

@@ -37,7 +37,7 @@ func NewCreateInstanceTool() mcp.Tool {
 			mcp.Description("Disable web security (CORS) for testing purposes (default: false)"),
 			),
 		mcp.WithBoolean("ignore-certificate-errors",
-			mcp.Description("Ignore TLS certificate errors. Needed behind a corporate proxy that intercepts TLS (e.g. Zscaler), where Chrome would otherwise fail with ERR_CERT_AUTHORITY_INVALID. Defaults to the CHROME_IGNORE_CERT_ERRORS env var (false if unset)."),
+			mcp.Description("Ignore TLS certificate errors. Needed behind a corporate proxy that intercepts TLS, where Chrome would otherwise fail with ERR_CERT_AUTHORITY_INVALID. Defaults to the CHROME_IGNORE_CERT_ERRORS env var (false if unset)."),
 			),
 		mcp.WithString("proxy-server",
 			mcp.Description("Route Chrome traffic through this proxy, e.g. \"http://proxy.host:3128\". Needed when the container's network can only reach the internet via a corporate proxy. Chrome ignores http_proxy/HTTPS_PROXY env vars, so this maps to the --proxy-server launch flag. Defaults to the CHROME_PROXY_SERVER env var (no proxy if unset)."),
@@ -75,7 +75,7 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	disablePlugins := request.GetBool("disable-plugins", true)
 	disableWebSecurity := request.GetBool("disable-web-security", false)
 	// Default from CHROME_IGNORE_CERT_ERRORS so deployments behind a TLS-
-	// intercepting proxy (Zscaler) can enable it image-wide, while staying
+	// intercepting proxy can enable it image-wide, while staying
 	// off by default elsewhere. A per-call value still overrides the env.
 	ignoreCertErrors := request.GetBool("ignore-certificate-errors", os.Getenv("CHROME_IGNORE_CERT_ERRORS") == "true")
 	// Default from CHROME_PROXY_SERVER so a deployment whose only route to the
@@ -97,7 +97,7 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	chromedp.Flag("disable-extensions", disableExtensions),                               // Disable browser extensions
 	chromedp.Flag("disable-plugins", disablePlugins),                                     // Disable browser plugins
 	chromedp.Flag("disable-web-security", disableWebSecurity),                           // Disable web security (CORS)
-	chromedp.Flag("ignore-certificate-errors", ignoreCertErrors),                        // Proceed past TLS cert errors (corporate proxy / Zscaler)
+	chromedp.Flag("ignore-certificate-errors", ignoreCertErrors),                        // Proceed past TLS cert errors (corporate proxy)
 	chromedp.Flag("no-sandbox", noSandbox),                                               // Disable sandbox for containers
 	chromedp.Flag("disable-dev-shm-usage", disableDevShmUsage),                          // Disable /dev/shm usage
 	chromedp.Flag("disable-background-timer-throttling", disableBackgroundTimerThrottling), // Disable background timer throttling

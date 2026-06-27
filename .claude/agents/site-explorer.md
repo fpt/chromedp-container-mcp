@@ -24,9 +24,8 @@ return tight.
 The `browser-sandbox` tools are deferred. Load them first with ToolSearch, e.g.
 `select:mcp__browser-sandbox__create-chrome-instance,...navigate,...screenshot,...get-all-elements,...get-element-withtext,...click-element,...scroll,...wait,...close`.
 
-## Zscaler
-
-We are behind Zscaler (TLS interception). The container Chrome rejects the
+## Corporate proxy (TLS interception)
+We are behind a corporate proxy (TLS interception). The container Chrome rejects the
 intercepted cert with `ERR_CERT_AUTHORITY_INVALID` unless you opt out of cert
 verification. **Always** create the instance with `ignore-certificate-errors: true`.
 If `navigate` still returns that error, the server is running an old image

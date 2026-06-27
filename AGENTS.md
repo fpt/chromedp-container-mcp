@@ -32,7 +32,7 @@ Typical tool loop:
 2. Use `navigate`, `screenshot`, selector tools, keyboard/mouse tools, and `wait` with that `id`.
 3. Call `close` when finished.
 
-Behind TLS-intercepting proxies such as Zscaler, use `ignore-certificate-errors: true` on `create-chrome-instance` or set `CHROME_IGNORE_CERT_ERRORS=true` for the server. If the container has no direct egress, configure `CHROME_PROXY_SERVER`; Chrome does not honor `http_proxy` or `HTTPS_PROXY`.
+Behind TLS-intercepting proxies, use `ignore-certificate-errors: true` on `create-chrome-instance` or set `CHROME_IGNORE_CERT_ERRORS=true` for the server. If the container has no direct egress, configure `CHROME_PROXY_SERVER`; Chrome does not honor `http_proxy` or `HTTPS_PROXY`.
 
 For exploration tasks, use the project-local skill at `.agents/skills/browse-site-sandbox/SKILL.md`.
 

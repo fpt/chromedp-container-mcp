@@ -5,8 +5,8 @@ FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS build
 
 WORKDIR /src
 
-# Zscaler etc. corporate proxy CA certificate (optional, skipped if not present).
-# Local: `make certs.pem` copies ~/.zscaler/certs.pem, then injects it via a
+# corporate proxy CA certificate (optional, skipped if not present).
+# Local: `make certs.pem` copies ~/.corp-ca/certs.pem, then injects it via a
 # Docker build secret. CI: the secret does not exist so this is skipped, and the
 # bookworm base's system roots already trust proxy.golang.org / github.com.
 RUN --mount=type=secret,id=ca_cert,required=false \
