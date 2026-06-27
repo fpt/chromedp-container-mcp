@@ -6,9 +6,20 @@ PORT  ?= 8080
 build: ## Build the server binary (requires local Chrome to run)
 	go build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
 
+ZSCALER_CERT := $(HOME)/.zscaler/certs.pem
+
+certs.pem: ## Copy Zscaler CA cert for Docker builds (auto-skipped if not present)
+	@if [ -f "$(ZSCALER_CERT)" ]; then \
+		cp "$(ZSCALER_CERT)" certs.pem; \
+		echo "Copied certs.pem from $(ZSCALER_CERT)"; \
+	else \
+		touch certs.pem; \
+		echo "No Zscaler cert found, created empty certs.pem"; \
+	fi
+
 .PHONY: docker-build
-docker-build: ## Build the all-in-one container image
-	docker build -t $(IMAGE) .
+docker-build: certs.pem ## Build the all-in-one container image
+	docker build --secret id=ca_cert,src=certs.pem -t $(IMAGE) .
 
 .PHONY: docker-run
 docker-run: docker-build ## Build then run the container
@@ -25,7 +36,7 @@ vet: ## Run go vet
 
 .PHONY: clean
 clean: ## Remove build artifacts
-	rm -rf bin out
+	rm -rf bin out certs.pem
 
 .PHONY: help
 help: ## Show available targets

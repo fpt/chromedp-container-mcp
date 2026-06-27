@@ -1,3 +1,5 @@
 /chromedp-container-mcp
+/bin/
 /out/
 *.exe
+certs.pem

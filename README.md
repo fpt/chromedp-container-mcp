@@ -112,6 +112,15 @@ All configuration is via environment variables:
 | `CHROME_MAXIMUM_INSTANCE` | `5`                     | Max concurrent Chrome instances |
 | `CHROME_TTL`              | `15`                    | Idle timeout (minutes) before an instance is reaped |
 | `CHROME_EXE_TIMEOUT`      | `300`                   | Per-action timeout (seconds) |
+| `CHROME_IGNORE_CERT_ERRORS` | `false`               | Default for the `ignore-certificate-errors` instance flag. Set to `true` behind a TLS-intercepting corporate proxy (e.g. Zscaler), where Chrome otherwise fails navigation with `ERR_CERT_AUTHORITY_INVALID`. |
+
+> **Behind a corporate proxy (Zscaler etc.):** the proxy substitutes its own TLS
+> certificate, which the in-container Chrome does not trust, so `navigate` fails
+> with `ERR_CERT_AUTHORITY_INVALID`. Either run with `-e CHROME_IGNORE_CERT_ERRORS=true`
+> (or set it in `docker-compose.yml`), or pass `ignore-certificate-errors: true` to a
+> single `create-chrome-instance` call. This disables TLS verification for that
+> browser, which is acceptable for a browsing sandbox but should stay off on
+> networks without TLS interception.
 
 > **Note:** when the host port differs from the container port (e.g.
 > `-p 8765:8080`), set `MCP_BASE_URL` to the host-side URL so the message

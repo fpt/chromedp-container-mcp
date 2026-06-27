@@ -1,6 +1,12 @@
 services:
   chromedp-mcp:
-    build: .
+    build:
+      context: .
+      # Zscaler etc. corporate proxy CA, injected as a build secret. Run
+      # `make certs.pem` first (copies ~/.zscaler/certs.pem, or an empty
+      # file when absent — the Dockerfile then skips the cert install).
+      secrets:
+        - ca_cert
     image: chromedp-container-mcp:latest
     ports:
       - "8080:8080"
@@ -15,6 +21,11 @@ services:
       CHROME_MAXIMUM_INSTANCE: "5"
       CHROME_TTL: "15"
       CHROME_EXE_TIMEOUT: "300"
+      # Behind a TLS-intercepting corporate proxy (Zscaler), Chrome cannot verify
+      # the substituted certificate and fails navigation with
+      # ERR_CERT_AUTHORITY_INVALID. Tell Chrome to proceed past cert errors. Set
+      # to "false" (or remove) on networks without TLS interception.
+      CHROME_IGNORE_CERT_ERRORS: "true"
     # Reap zombie Chrome child processes (PID 1 problem).
     init: true
     # Chrome can crash with BUS_ADRERR on the default 64MB /dev/shm. The server
@@ -22,3 +33,7 @@ services:
     # for heavy pages / screenshots.
     shm_size: "1gb"
     restart: unless-stopped
+
+secrets:
+  ca_cert:
+    file: ./certs.pem

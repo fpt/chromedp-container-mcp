@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	cdp "chromedp-container-mcp/chromedp"
 
@@ -34,6 +35,9 @@ func NewCreateInstanceTool() mcp.Tool {
 			),
 		mcp.WithBoolean("disable-web-security",
 			mcp.Description("Disable web security (CORS) for testing purposes (default: false)"),
+			),
+		mcp.WithBoolean("ignore-certificate-errors",
+			mcp.Description("Ignore TLS certificate errors. Needed behind a corporate proxy that intercepts TLS (e.g. Zscaler), where Chrome would otherwise fail with ERR_CERT_AUTHORITY_INVALID. Defaults to the CHROME_IGNORE_CERT_ERRORS env var (false if unset)."),
 			),
 		mcp.WithBoolean("no-sandbox",
 			mcp.Description("Disable Chrome sandbox, required when running as root in containers (default: true)"),
@@ -67,6 +71,10 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	disableExtensions := request.GetBool("disable-extensions", true)
 	disablePlugins := request.GetBool("disable-plugins", true)
 	disableWebSecurity := request.GetBool("disable-web-security", false)
+	// Default from CHROME_IGNORE_CERT_ERRORS so deployments behind a TLS-
+	// intercepting proxy (Zscaler) can enable it image-wide, while staying
+	// off by default elsewhere. A per-call value still overrides the env.
+	ignoreCertErrors := request.GetBool("ignore-certificate-errors", os.Getenv("CHROME_IGNORE_CERT_ERRORS") == "true")
 	noSandbox := request.GetBool("no-sandbox", true)
 	disableDevShmUsage := request.GetBool("disable-dev-shm-usage", true)
 	disableBackgroundTimerThrottling := request.GetBool("disable-background-timer-throttling", false)
@@ -83,6 +91,7 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	chromedp.Flag("disable-extensions", disableExtensions),                               // Disable browser extensions
 	chromedp.Flag("disable-plugins", disablePlugins),                                     // Disable browser plugins
 	chromedp.Flag("disable-web-security", disableWebSecurity),                           // Disable web security (CORS)
+	chromedp.Flag("ignore-certificate-errors", ignoreCertErrors),                        // Proceed past TLS cert errors (corporate proxy / Zscaler)
 	chromedp.Flag("no-sandbox", noSandbox),                                               // Disable sandbox for containers
 	chromedp.Flag("disable-dev-shm-usage", disableDevShmUsage),                          // Disable /dev/shm usage
 	chromedp.Flag("disable-background-timer-throttling", disableBackgroundTimerThrottling), // Disable background timer throttling
