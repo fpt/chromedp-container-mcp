@@ -1,0 +1,22 @@
+services:
+  chromedp-mcp:
+    build: .
+    image: chromedp-container-mcp:latest
+    ports:
+      - "8080:8080"
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8080"
+      # URL advertised to SSE clients; set to the externally reachable address
+      # when running behind a reverse proxy.
+      MCP_BASE_URL: http://localhost:8080
+      CHROME_MAXIMUM_INSTANCE: "5"
+      CHROME_TTL: "15"
+      CHROME_EXE_TIMEOUT: "300"
+    # Reap zombie Chrome child processes (PID 1 problem).
+    init: true
+    # Chrome can crash with BUS_ADRERR on the default 64MB /dev/shm. The server
+    # passes --disable-dev-shm-usage by default, but a larger shm is still safer
+    # for heavy pages / screenshots.
+    shm_size: "1gb"
+    restart: unless-stopped
