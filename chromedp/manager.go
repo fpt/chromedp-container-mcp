@@ -28,6 +28,10 @@ type ChromeInstance struct {
 	Cancel    context.CancelFunc
 	TTL       time.Duration
 	LastUsed  time.Time
+	// runMu serializes actions on this instance. A chromedp context can only run
+	// one action sequence at a time, so concurrent tool calls against the same
+	// instance must be serialized rather than racing on the same target.
+	runMu sync.Mutex
 }
 
 var Manager ChromeManager
@@ -247,9 +251,14 @@ func (cm *ChromeManager) Execute(id string, actions ...chromedp.Action) error {
 	if err != nil {
 		return err
 	}
-	
+
+	// Serialize actions per instance: concurrent chromedp.Run on one context
+	// would deadlock on the shared target.
+	instance.runMu.Lock()
+	defer instance.runMu.Unlock()
+
 	done := make(chan error, 1)
-	
+
 	go func() {
 		done <- chromedp.Run(instance.Context, actions...)
 	}()
@@ -269,8 +278,11 @@ func (cm *ChromeManager) ExecuteWithTimeout(id string, timeout time.Duration, ac
 		return err
 	}
 	
+	instance.runMu.Lock()
+	defer instance.runMu.Unlock()
+
 	ctx, cancel := context.WithTimeout(instance.Context, timeout)
 	defer cancel()
-	
+
 	return chromedp.Run(ctx, actions...)
 }

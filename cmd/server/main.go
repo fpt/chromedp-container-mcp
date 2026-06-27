@@ -61,10 +61,19 @@ func main() {
 	s.AddTool(tool.NewClickElementTool(), tool.ClickElementHandler)
 	s.AddTool(tool.NewSelectElementTool(), tool.SelectElementHandler)
 
-	// Input operations
+	// Input operations (selector-based)
 	s.AddTool(tool.NewSendKeyTool(), tool.SendKeyHandler)
 	s.AddTool(tool.NewSetValueTool(), tool.SetValueHandler)
 	s.AddTool(tool.NewKeyEventTool(), tool.KeyEventHandler)
+
+	// Computer-use primitives (coordinate / screenshot driven)
+	s.AddTool(tool.NewMouseClickTool(), tool.MouseClickHandler)
+	s.AddTool(tool.NewMouseMoveTool(), tool.MouseMoveHandler)
+	s.AddTool(tool.NewMouseDragTool(), tool.MouseDragHandler)
+	s.AddTool(tool.NewScrollTool(), tool.ScrollHandler)
+	s.AddTool(tool.NewTypeTextTool(), tool.TypeTextHandler)
+	s.AddTool(tool.NewPressKeysTool(), tool.PressKeysHandler)
+	s.AddTool(tool.NewWaitTool(), tool.WaitHandler)
 
 	// Cookie management
 	s.AddTool(tool.NewSetCookieTool(), tool.SetCookieHandler)

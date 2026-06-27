@@ -119,15 +119,33 @@ All configuration is via environment variables:
 
 ## Tools
 
+**Selector-based** (drive the page via CSS/XPath selectors and the DOM tree):
 `create-chrome-instance`, `close`, `navigate`, `navigate-back`,
 `navigate-forward`, `get-element-withtext`, `get-all-elements`,
 `select-element`, `click-element`, `send-key`, `set-value`, `key-event`,
 `set-cookie`, `download-file`, `download_image`, `screenshot`, `generate_pdf`,
 `tips`.
 
+**Computer-use** (coordinate / screenshot driven — for agents that read a
+screenshot and act on pixels, à la
+[OpenAI's computer-use](https://developers.openai.com/api/docs/guides/tools-computer-use)
+and Anthropic computer-use loops): `mouse-click`, `mouse-move`, `mouse-drag`,
+`scroll`, `type-text`, `press-keys`, `wait`.
+
+The loop is: `screenshot` → inspect → act with a coordinate tool → `screenshot`
+again. To make pixels line up with click coordinates:
+
+- The viewport is **fixed** at instance creation (`viewport-width` /
+  `viewport-height`, default **1280×800**) and runs at devicePixelRatio 1.
+- `screenshot` defaults to the **visible viewport** (not the full page) and its
+  result description reports the image size in pixels — that is your coordinate
+  space. Pass `full_page: true` for the whole scrollable page.
+- Coordinates are CSS pixels from the top-left of the viewport.
+
 `create-chrome-instance` defaults to **container-safe** flags
 (`headless`, `no-sandbox`, `disable-dev-shm-usage`, `disable-gpu` all on); each
-can be overridden per call.
+can be overridden per call. Concurrent tool calls against the same instance are
+serialized internally, so a browser instance is safe to share within a session.
 
 ## Local development
 

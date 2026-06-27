@@ -50,6 +50,12 @@ func NewCreateInstanceTool() mcp.Tool {
 		mcp.WithBoolean("disable-renderer-backgrounding",
 			mcp.Description("Disable renderer backgrounding (default: false)"),
 			),
+		mcp.WithNumber("viewport-width",
+			mcp.Description("Viewport width in pixels (default: 1280). Fixes the coordinate space used by the screenshot and mouse-* tools."),
+			),
+		mcp.WithNumber("viewport-height",
+			mcp.Description("Viewport height in pixels (default: 800)."),
+			),
 		)
 }
 
@@ -66,8 +72,11 @@ func CreateInstanceHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	disableBackgroundTimerThrottling := request.GetBool("disable-background-timer-throttling", false)
 	disableBackgroundingOccludedWindows := request.GetBool("disable-backgrounding-occluded-windows", false)
 	disableRendererBackgrounding := request.GetBool("disable-renderer-backgrounding", false)
+	viewportWidth := request.GetInt("viewport-width", 1280)
+	viewportHeight := request.GetInt("viewport-height", 800)
 
 	allocOpts := append(chromedp.DefaultExecAllocatorOptions[:],
+	chromedp.WindowSize(viewportWidth, viewportHeight), // Fixed viewport so screenshot px == mouse coordinates
 	chromedp.Flag("headless", headless),                                                    // Enable/disable headless mode
 	chromedp.Flag("disable-gpu", disableGpu),                                              // Enable/disable GPU
 	chromedp.Flag("disable-popup-blocking", disablePopupBlocking),                        // Control popup blocking
