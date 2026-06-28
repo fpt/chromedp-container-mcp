@@ -105,6 +105,39 @@ message URL, then POSTs JSON-RPC to that URL. Equivalent manual config:
 }
 ```
 
+## Running with Apple `container`
+
+The image is OCI-compatible, so it also runs on [Apple's `container`](https://github.com/apple/container)
+(macOS 26+ on Apple silicon) — Linux containers as lightweight VMs. Verified
+with `container` 1.0. Start the service once with `container system start`, then:
+
+```bash
+# Build (the CA build secret is optional; omit it if you have no corporate CA)
+container build -t chromedp-container-mcp:latest .
+
+# stdio (default) — register with the Claude Code CLI
+claude mcp add browser-sandbox -- \
+  container run -i --rm --shm-size 1g chromedp-container-mcp:latest
+
+# SSE
+container run --rm -p 8080:8080 \
+  -e MCP_TRANSPORT=sse -e MCP_BASE_URL=http://localhost:8080 \
+  chromedp-container-mcp:latest
+```
+
+Differences from Docker to keep in mind:
+
+- **No `--init` flag.** The server runs as PID 1 inside the container, the same
+  as `docker run` *without* `--init`. For per-session stdio use this is a
+  non-issue; for very long-lived SSE deployments prefer Docker with `--init` if
+  automatic zombie reaping matters.
+- **Build secret:** `container build` supports `--secret id=ca_cert,src=certs.pem`
+  just like Docker, but the secret is optional here too (the Dockerfile skips the
+  CA install when it's absent).
+- **IPv6:** the guest VM may have no IPv6 egress; headless Chrome falls back to
+  IPv4 automatically, so navigation to public sites works (verified).
+- `--shm-size` is supported (same `/dev/shm` guidance as Docker).
+
 ## Configuration
 
 All configuration is via environment variables:
