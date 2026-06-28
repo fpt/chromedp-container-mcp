@@ -241,6 +241,22 @@ again. To make pixels line up with click coordinates:
 can be overridden per call. Concurrent tool calls against the same instance are
 serialized internally, so a browser instance is safe to share within a session.
 
+**Diagnostics**: `system-stats`, `network-check`.
+
+`system-stats` reports resource usage: total memory and process count of the
+headless Chrome tree (read from `/proc`), the MCP server's own RSS / Go heap /
+goroutines, and the managed instances (active vs. `CHROME_MAXIMUM_INSTANCE`, with
+each instance's idle time and TTL). Use it to check headroom before creating more
+instances or to debug memory pressure.
+
+`network-check` diagnoses outbound connectivity from inside the container: the
+DNS servers, how a `host` resolves (IPv4 vs IPv6 addresses), and whether IPv4 and
+IPv6 egress actually work (TCP connect to public resolvers on `:443`), plus an
+optional HTTP(S) `url` probe (which honors `CHROME_IGNORE_CERT_ERRORS` so it
+mirrors the browser). It also emits a hint for the common failure mode — a host
+that resolves to IPv6 while the VM has no IPv6 route. Reach for it when
+navigation fails, hangs, or errors.
+
 ## Local development
 
 ```bash

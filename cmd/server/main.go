@@ -46,6 +46,10 @@ func main() {
 
 	s.AddTool(tool.NewTipsTool(), tool.TipsHandler)
 
+	// Diagnostics
+	s.AddTool(tool.NewSystemStatsTool(), tool.SystemStatsHandler)
+	s.AddTool(tool.NewNetworkCheckTool(), tool.NetworkCheckHandler)
+
 	// Instance lifecycle
 	s.AddTool(tool.NewCreateInstanceTool(), tool.CreateInstanceHandler)
 	s.AddTool(tool.NewCloseInstanceTool(), tool.CloseInstanceHandler)

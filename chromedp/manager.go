@@ -215,6 +215,11 @@ func (cm *ChromeManager) GetInstanceCount() int {
 	return len(cm.instances)
 }
 
+// Maximum returns the configured maximum number of concurrent instances.
+func (cm *ChromeManager) Maximum() int {
+	return cm.maximum
+}
+
 // startAutoCleanup runs in a separate goroutine to automatically clean up expired instances
 func (cm *ChromeManager) startAutoCleanup() {
 	ticker := time.NewTicker(time.Minute) // Check every minute
