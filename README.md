@@ -142,10 +142,28 @@ All configuration is via environment variables:
 
 **Selector-based** (drive the page via CSS/XPath selectors and the DOM tree):
 `create-chrome-instance`, `close`, `navigate`, `navigate-back`,
-`navigate-forward`, `navigate-multiple`, `get-element-withtext`,
-`get-all-elements`, `select-element`, `click-element`, `multi-step`, `send-key`,
-`set-value`, `key-event`, `set-cookie`, `download-file`, `download_image`,
-`screenshot`, `generate_pdf`, `tips`.
+`navigate-forward`, `navigate-multiple`, `multi-extract`, `page-stats`,
+`get-element-withtext`, `get-all-elements`, `select-element`, `click-element`,
+`multi-step`, `send-key`, `set-value`, `key-event`, `set-cookie`,
+`download-file`, `download_image`, `screenshot`, `generate_pdf`, `tips`.
+
+`multi-extract` pulls several things off the current page in one call. You pass
+name/selector pairs (XPath or CSS); each selector matches 0..n elements and the
+result maps **every name to a list** of matches (text, an XPath you can act on,
+plus href/value/select-options where relevant). An **empty list means that
+selector matched nothing** — so the agent can tell "this component is absent / my
+pattern is wrong" from "present but empty", instead of a fixed report implying
+there's nothing there. Invalid selectors are reported under a separate `errors`
+map. Omit `selectors` to run a default probe of common components, whose keys are
+prefixed with `-` (e.g. `-title` → `//title`, `-h1`, `-nav`, `-search`,
+`-breadcrumb`, `-pagination`, `-buttons`, `-forms`, `-tabs`).
+
+`page-stats` summarizes the page's **structure** rather than its content:
+histograms of element tags and CSS class tokens (with counts), the list of ids,
+ARIA roles, `data-*` attribute names, an input-type breakdown, counts of common
+components, and total element count / max DOM depth. Use it to discover what
+selectors to write — a class that appears 24 times is probably the repeated list
+item. Pass an optional `selector` to gather stats only within one element.
 
 `navigate-multiple` fetches several URLs **in parallel**, each in its own tab of
 the instance, applies the same DOM-cleaning filter as `navigate` to all of them,

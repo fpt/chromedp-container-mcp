@@ -70,6 +70,32 @@ func TestMultiStepJS_Syntax(t *testing.T) {
 	nodeCheck(t, "multistep", multiStepJS(string(stepsJSON)))
 }
 
+func TestMultiExtractJS_Syntax(t *testing.T) {
+	specs := []jsExtract{{Name: "x", Selector: trickySelectors[0], XPath: true}}
+	for i := range defaultExtractSpecs {
+		specs = append(specs, defaultExtractSpecs[i])
+	}
+	b, err := json.Marshal(specs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodeCheck(t, "multiextract", multiExtractJS(string(b), 50))
+}
+
+func TestPageStatsJS_Syntax(t *testing.T) {
+	for _, cfg := range []statsConfig{
+		{Top: 50},
+		{Selector: trickySelectors[0], XPath: true, Top: 10},
+		{Selector: "#main .list", XPath: false, Top: 25},
+	} {
+		b, err := json.Marshal(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		nodeCheck(t, "pagestats", pageStatsJS(string(b)))
+	}
+}
+
 func TestIsXPathSelector(t *testing.T) {
 	cases := map[string]bool{
 		`//a[@id="x"]`:    true,
