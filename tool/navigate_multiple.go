@@ -81,7 +81,7 @@ func NavigateMultipleHandler(ctx context.Context, request mcp.CallToolRequest) (
 			fmt.Fprintf(&sb, "ERROR: %v\n", results[i].err)
 		} else {
 			ok++
-			sb.WriteString(results[i].html)
+			sb.WriteString(annotateDepthTruncation(results[i].html, depth))
 			sb.WriteString("\n")
 		}
 		sb.WriteString("\n")

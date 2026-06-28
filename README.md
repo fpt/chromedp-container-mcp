@@ -198,6 +198,12 @@ components, and total element count / max DOM depth. Use it to discover what
 selectors to write — a class that appears 24 times is probably the repeated list
 item. Pass an optional `selector` to gather stats only within one element.
 
+The DOM-returning tools (`navigate`, `navigate-multiple`, `get-all-elements`,
+`select-element`) take a `depth` limit. When the result is cut off at that
+limit, the output is **prefixed with a `⚠` warning naming the depth** so you
+notice content is hidden (not absent) and can re-run with a larger `depth`,
+rather than being silently truncated.
+
 `navigate-multiple` fetches several URLs **in parallel**, each in its own tab of
 the instance, applies the same DOM-cleaning filter as `navigate` to all of them,
 and returns the cleaned trees side by side — handy for exploring and comparing

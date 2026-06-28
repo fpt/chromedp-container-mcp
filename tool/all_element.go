@@ -69,5 +69,5 @@ func AllElementHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.C
 		return nil, err
 	}
 
-	return mcp.NewToolResultText(cleanHTML),err
+	return mcp.NewToolResultText(annotateDepthTruncation(cleanHTML, depth)), err
 }

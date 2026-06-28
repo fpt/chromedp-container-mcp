@@ -60,7 +60,29 @@ func NavigateHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 		return nil, err
 	}
 
-	return mcp.NewToolResultText(cleanHTML), nil
+	return mcp.NewToolResultText(annotateDepthTruncation(cleanHTML, depth)), nil
+}
+
+// truncationMarkers are the placeholders the DOM-cleaning filters emit when they
+// hit the depth limit. Keep in sync with cleanElement (below) and selectElement
+// (element.go).
+var truncationMarkers = []string{
+	"[Content truncated - max depth reached]",
+	"[Depth limit reached]",
+	`data-truncated="true"`,
+}
+
+// annotateDepthTruncation prepends a warning when the cleaned DOM hit the depth
+// limit, so the agent knows content is present but hidden by `depth` (a silent
+// truncation is a footgun) and can re-run with a larger value instead of
+// concluding the branch is empty.
+func annotateDepthTruncation(out string, depth int) string {
+	for _, m := range truncationMarkers {
+		if strings.Contains(out, m) {
+			return fmt.Sprintf("⚠ Output was cut off at depth=%d — some branches hit the max-depth limit (see the truncation markers below). Re-run with a larger `depth` to reveal them.\n\n%s", depth, out)
+		}
+	}
+	return out
 }
 
 func NewNavigateBackTool() mcp.Tool {

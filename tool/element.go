@@ -135,8 +135,8 @@ func SelectElementHandler(ctx context.Context, request mcp.CallToolRequest) (*mc
     if err != nil {
         return mcp.NewToolResultError(fmt.Sprintf("Element selection failed: %v", err)), nil
     }
-    
-    return mcp.NewToolResultText(result), nil
+
+    return mcp.NewToolResultText(annotateDepthTruncation(result, depth)), nil
 }
 
 func selectElement(selector string, depth int, selectAll bool) string {
