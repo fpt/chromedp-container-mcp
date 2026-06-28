@@ -178,7 +178,7 @@ All configuration is via environment variables:
 `navigate-forward`, `navigate-multiple`, `multi-extract`, `page-stats`,
 `get-element-withtext`, `get-all-elements`, `select-element`, `click-element`,
 `multi-step`, `send-key`, `set-value`, `key-event`, `set-cookie`,
-`download-file`, `download_image`, `screenshot`, `generate_pdf`, `tips`.
+`download-file`, `download_image`, `screenshot`, `tips`.
 
 `multi-extract` pulls several things off the current page in one call. You pass
 name/selector pairs (XPath or CSS); each selector matches 0..n elements and the

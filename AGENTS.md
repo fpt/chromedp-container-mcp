@@ -41,7 +41,6 @@ For exploration tasks, use the project-local skill at `.agents/skills/browse-sit
 - Run shared Chrome instance actions through `Manager.Execute` or `Manager.ExecuteWithTimeout`.
 - Do not call `chromedp.Run(instance.Context, ...)` directly from new handlers; it bypasses per-instance serialization.
 - Keep stdio protocol output clean: logs must go to stderr, not stdout.
-- `generate_pdf` uses a separate throwaway Chrome context and does not share managed instance cookies/session.
 
 ## Skill Conventions
 

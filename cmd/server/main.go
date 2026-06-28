@@ -86,9 +86,8 @@ func main() {
 	s.AddTool(tool.NewDownloadFileTool(), tool.DownloadFileHandler)
 	s.AddTool(tool.NewDownloadImageTool(), tool.DownloadImageHandler)
 
-	// Screenshot & PDF
+	// Screenshot
 	s.AddTool(tool.NewScreenshotTool(), tool.ScreenshotHandler)
-	s.AddTool(tool.NewPdfTool(), tool.GenPdfHandler)
 
 	// MCP_TRANSPORT selects the transport: "stdio" (default) speaks JSON-RPC
 	// over stdin/stdout for clients that launch the container as a subprocess

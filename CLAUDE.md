@@ -6,7 +6,7 @@ file covers architecture invariants and the non-obvious operational details.
 ## What this is
 
 An MCP server that exposes a headless Chrome "browser sandbox" as tools
-(navigate, click, screenshot, search the DOM, cookies, PDF, computer-use mouse
+(navigate, click, screenshot, search the DOM, cookies, computer-use mouse
 primitives). Module `chromedp-container-mcp`, Go 1.26. It ships as a container
 based on `chromedp/headless-shell`, and is registered as an MCP server via
 `docker run -i ... chromedp-container-mcp:latest` (see README).
@@ -69,8 +69,7 @@ truth for safety:
   these acquire `runMu` and apply the execute timeout. Do **not** call
   `chromedp.Run(instance.Context, ...)` directly; that bypasses the lock and can
   race a concurrent action on the same instance. (`cookie.go` had this bug and
-  was fixed; `pdf.go` is exempt because it builds its own throwaway context and
-  touches no shared instance.)
+  was fixed.)
 - Transport: the stdio server (mcp-go) dispatches `tools/call` via a worker pool
   (default size 5). So practical parallelism ≈ min(5 workers, 5 instances). To
   scale: raise `CHROME_MAXIMUM_INSTANCE` (env) **and** add
@@ -86,10 +85,6 @@ truth for safety:
 
 ## Gotchas
 
-- `pdf.go` builds its own ephemeral Chrome and **ignores** the
-  `ignore-certificate-errors` flag and the managed instance — so `generate_pdf`
-  from a URL fails behind a TLS-intercepting proxy and won't share cookies/session with an
-  explored instance. Known, unfixed.
 - The `chromedp/headless-shell` image runs Chrome as a remote-debugging server;
   its one-shot CLI modes (`--dump-dom`, `--screenshot`) don't reliably emit
   output. To probe cert/navigation at the Chrome level, drive it over the
