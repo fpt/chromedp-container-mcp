@@ -138,6 +138,50 @@ Differences from Docker to keep in mind:
   IPv4 automatically, so navigation to public sites works (verified).
 - `--shm-size` is supported (same `/dev/shm` guidance as Docker).
 
+## Running with bubblewrap (Linux, no container runtime)
+
+On Linux you can sandbox the server + headless Chrome with
+[bubblewrap](https://github.com/containers/bubblewrap) instead of a container
+runtime. bubblewrap doesn't run OCI images, so the approach is to materialize the
+image's filesystem to a rootfs once, then `bwrap` into it. Chrome runs
+`--no-sandbox` (the default) — **bubblewrap is the sandbox**. Verified end to end
+(create instance, navigate, screenshot).
+
+```bash
+docker build -t chromedp-container-mcp:latest .   # or build the rootfs any way you like
+./scripts/run-bwrap.sh                             # exports rootfs once, then runs under bwrap
+```
+
+`scripts/run-bwrap.sh` exports `./bwrap-rootfs` on first run (via `docker`/`podman`,
+used only for the export) and then launches:
+
+```bash
+bwrap --ro-bind ./bwrap-rootfs / \
+  --tmpfs /tmp --tmpfs /dev/shm --proc /proc --dev /dev \
+  --ro-bind-try /etc/resolv.conf /etc/resolv.conf \
+  --unshare-user-try --unshare-pid --unshare-ipc --unshare-uts \
+  --die-with-parent --new-session \
+  --setenv PATH /headless-shell:/usr/local/bin:/usr/bin:/bin \
+  --setenv HOME /tmp --setenv MCP_TRANSPORT stdio \
+  /usr/local/bin/chromedp-container-mcp
+```
+
+Register it with the Claude Code CLI (pre-export the rootfs first so startup is fast):
+
+```bash
+claude mcp add browser-sandbox -- /abs/path/to/scripts/run-bwrap.sh
+```
+
+Notes:
+
+- **Requires** `bwrap` plus either a setuid bwrap (the usual distro package) or
+  unprivileged user namespaces enabled (`kernel.unprivileged_userns_clone=1` /
+  non-zero `user.max_user_namespaces`).
+- The **network namespace is shared with the host**, so in SSE mode the server
+  listens directly on the host's interface — no port mapping needed.
+- The server runs as PID 1 inside the sandbox; like Docker without `--init`,
+  there's no automatic zombie reaping (fine for per-session stdio use).
+
 ## Configuration
 
 All configuration is via environment variables:
