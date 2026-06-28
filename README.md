@@ -143,9 +143,9 @@ All configuration is via environment variables:
 **Selector-based** (drive the page via CSS/XPath selectors and the DOM tree):
 `create-chrome-instance`, `close`, `navigate`, `navigate-back`,
 `navigate-forward`, `navigate-multiple`, `get-element-withtext`,
-`get-all-elements`, `select-element`, `click-element`, `send-key`, `set-value`,
-`key-event`, `set-cookie`, `download-file`, `download_image`, `screenshot`,
-`generate_pdf`, `tips`.
+`get-all-elements`, `select-element`, `click-element`, `multi-step`, `send-key`,
+`set-value`, `key-event`, `set-cookie`, `download-file`, `download_image`,
+`screenshot`, `generate_pdf`, `tips`.
 
 `navigate-multiple` fetches several URLs **in parallel**, each in its own tab of
 the instance, applies the same DOM-cleaning filter as `navigate` to all of them,
@@ -153,6 +153,15 @@ and returns the cleaned trees side by side — handy for exploring and comparing
 sub-pages in one call. The tabs are opened and closed automatically and the
 instance's main tab is left untouched (`max_concurrency` and per-page `timeout`
 are tunable).
+
+`multi-step` runs an ordered sequence of **scoped** steps in one call: each
+step's selector is matched *within* the element selected by the previous step, so
+the scope narrows as you go (e.g. select a container → select a row inside it →
+click a button inside that row). Step actions are `select`, `click`, `set-value`,
+and `extract`. If a step matches nothing the call fails and reports the 1-based
+step number — letting an agent drill into and act on nested structure without a
+round-trip per step. Scoped XPath should be relative (`.//…`); a leading `//` is
+auto-scoped to the current element.
 
 **Computer-use** (coordinate / screenshot driven — for agents that read a
 screenshot and act on pixels, à la

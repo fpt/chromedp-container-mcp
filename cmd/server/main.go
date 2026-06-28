@@ -61,6 +61,7 @@ func main() {
 	s.AddTool(tool.NewAllElementTool(), tool.AllElementHandler)
 	s.AddTool(tool.NewClickElementTool(), tool.ClickElementHandler)
 	s.AddTool(tool.NewSelectElementTool(), tool.SelectElementHandler)
+	s.AddTool(tool.NewMultiStepTool(), tool.MultiStepHandler)
 
 	// Input operations (selector-based)
 	s.AddTool(tool.NewSendKeyTool(), tool.SendKeyHandler)

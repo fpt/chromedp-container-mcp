@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"strings"
@@ -55,6 +56,18 @@ func TestCleanElementJS_Syntax(t *testing.T) {
 	for _, sel := range append([]string{""}, trickySelectors...) {
 		nodeCheck(t, "clean", cleanElement(5, sel))
 	}
+}
+
+func TestMultiStepJS_Syntax(t *testing.T) {
+	steps := make([]jsStep, 0, len(trickySelectors))
+	for _, sel := range trickySelectors {
+		steps = append(steps, jsStep{Action: "select", Selector: sel, Value: `"quoted" & <value>`, XPath: isXPathSelector(sel)})
+	}
+	stepsJSON, err := json.Marshal(steps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodeCheck(t, "multistep", multiStepJS(string(stepsJSON)))
 }
 
 func TestIsXPathSelector(t *testing.T) {
