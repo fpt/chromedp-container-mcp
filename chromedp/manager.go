@@ -322,3 +322,38 @@ func (cm *ChromeManager) ExecuteWithTimeout(id string, timeout time.Duration, ac
 
 	return chromedp.Run(ctx, actions...)
 }
+
+// ExecuteInNewTab runs actions in a fresh tab (a new target) of the instance's
+// browser. Unlike Execute it does NOT take the instance's runMu, so it is safe
+// to call concurrently for different tabs of the same instance — each tab is an
+// independent target with its own command queue. This is what powers parallel
+// multi-page fetches. A per-call timeout (timeout, or the manager default when
+// <= 0) bounds each tab.
+//
+// inFlight is incremented for the duration so the idle reaper won't cancel the
+// parent browser context (which would tear down all tabs) while a batch runs.
+func (cm *ChromeManager) ExecuteInNewTab(id string, timeout time.Duration, actions ...chromedp.Action) error {
+	instance, err := cm.GetInstance(id)
+	if err != nil {
+		return err
+	}
+
+	instance.inFlight.Add(1)
+	defer func() {
+		instance.inFlight.Add(-1)
+		cm.touch(id)
+	}()
+
+	if timeout <= 0 {
+		timeout = cm.executeTimeout
+	}
+
+	// New tab in the same browser, isolated from the instance's main tab.
+	tabCtx, cancelTab := chromedp.NewContext(instance.Context)
+	defer cancelTab()
+
+	ctx, cancel := context.WithTimeout(tabCtx, timeout)
+	defer cancel()
+
+	return chromedp.Run(ctx, actions...)
+}

@@ -54,6 +54,7 @@ func main() {
 	s.AddTool(tool.NewNavigateTool(), tool.NavigateHandler)
 	s.AddTool(tool.NewNavigateBackTool(), tool.NavigateBackHandler)
 	s.AddTool(tool.NewNavigateForwardTool(), tool.NavigateForwardHandler)
+	s.AddTool(tool.NewNavigateMultipleTool(), tool.NavigateMultipleHandler)
 
 	// Element operations
 	s.AddTool(tool.NewGetElementTool(), tool.GetElementHandler)

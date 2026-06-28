@@ -142,10 +142,17 @@ All configuration is via environment variables:
 
 **Selector-based** (drive the page via CSS/XPath selectors and the DOM tree):
 `create-chrome-instance`, `close`, `navigate`, `navigate-back`,
-`navigate-forward`, `get-element-withtext`, `get-all-elements`,
-`select-element`, `click-element`, `send-key`, `set-value`, `key-event`,
-`set-cookie`, `download-file`, `download_image`, `screenshot`, `generate_pdf`,
-`tips`.
+`navigate-forward`, `navigate-multiple`, `get-element-withtext`,
+`get-all-elements`, `select-element`, `click-element`, `send-key`, `set-value`,
+`key-event`, `set-cookie`, `download-file`, `download_image`, `screenshot`,
+`generate_pdf`, `tips`.
+
+`navigate-multiple` fetches several URLs **in parallel**, each in its own tab of
+the instance, applies the same DOM-cleaning filter as `navigate` to all of them,
+and returns the cleaned trees side by side — handy for exploring and comparing
+sub-pages in one call. The tabs are opened and closed automatically and the
+instance's main tab is left untouched (`max_concurrency` and per-page `timeout`
+are tunable).
 
 **Computer-use** (coordinate / screenshot driven — for agents that read a
 screenshot and act on pixels, à la
