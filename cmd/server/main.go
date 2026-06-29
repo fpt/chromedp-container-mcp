@@ -9,11 +9,23 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
 	cdp "chromedp-container-mcp/chromedp"
 	"chromedp-container-mcp/tool"
 )
+
+// readOnly marks a tool as non-mutating via MCP annotations: it neither changes
+// the page/instance nor writes anything external (navigation, screenshots, and
+// DOM/stat inspection). Clients can use this to auto-approve or group such tools.
+// mcp-go otherwise defaults tools to readOnlyHint=false, destructiveHint=true.
+func readOnly(t mcp.Tool) mcp.Tool {
+	yes, no := true, false
+	t.Annotations.ReadOnlyHint = &yes
+	t.Annotations.DestructiveHint = &no
+	return t
+}
 
 func envInt(key string, def int) int {
 	if v := os.Getenv(key); v != "" {
@@ -44,30 +56,30 @@ func main() {
 		server.WithToolCapabilities(false),
 	)
 
-	s.AddTool(tool.NewTipsTool(), tool.TipsHandler)
+	s.AddTool(readOnly(tool.NewTipsTool()), tool.TipsHandler)
 
-	// Diagnostics
-	s.AddTool(tool.NewSystemStatsTool(), tool.SystemStatsHandler)
-	s.AddTool(tool.NewNetworkCheckTool(), tool.NetworkCheckHandler)
+	// Diagnostics (read-only)
+	s.AddTool(readOnly(tool.NewSystemStatsTool()), tool.SystemStatsHandler)
+	s.AddTool(readOnly(tool.NewNetworkCheckTool()), tool.NetworkCheckHandler)
 
 	// Instance lifecycle
 	s.AddTool(tool.NewCreateInstanceTool(), tool.CreateInstanceHandler)
 	s.AddTool(tool.NewCloseInstanceTool(), tool.CloseInstanceHandler)
 
-	// Page navigation
-	s.AddTool(tool.NewNavigateTool(), tool.NavigateHandler)
-	s.AddTool(tool.NewNavigateBackTool(), tool.NavigateBackHandler)
-	s.AddTool(tool.NewNavigateForwardTool(), tool.NavigateForwardHandler)
-	s.AddTool(tool.NewNavigateMultipleTool(), tool.NavigateMultipleHandler)
+	// Page navigation (read-only: loads pages, returns DOM)
+	s.AddTool(readOnly(tool.NewNavigateTool()), tool.NavigateHandler)
+	s.AddTool(readOnly(tool.NewNavigateBackTool()), tool.NavigateBackHandler)
+	s.AddTool(readOnly(tool.NewNavigateForwardTool()), tool.NavigateForwardHandler)
+	s.AddTool(readOnly(tool.NewNavigateMultipleTool()), tool.NavigateMultipleHandler)
 
-	// Element operations
-	s.AddTool(tool.NewGetElementTool(), tool.GetElementHandler)
-	s.AddTool(tool.NewAllElementTool(), tool.AllElementHandler)
+	// Element operations (inspection is read-only; click/multi-step mutate)
+	s.AddTool(readOnly(tool.NewGetElementTool()), tool.GetElementHandler)
+	s.AddTool(readOnly(tool.NewAllElementTool()), tool.AllElementHandler)
 	s.AddTool(tool.NewClickElementTool(), tool.ClickElementHandler)
-	s.AddTool(tool.NewSelectElementTool(), tool.SelectElementHandler)
+	s.AddTool(readOnly(tool.NewSelectElementTool()), tool.SelectElementHandler)
 	s.AddTool(tool.NewMultiStepTool(), tool.MultiStepHandler)
-	s.AddTool(tool.NewMultiExtractTool(), tool.MultiExtractHandler)
-	s.AddTool(tool.NewPageStatsTool(), tool.PageStatsHandler)
+	s.AddTool(readOnly(tool.NewMultiExtractTool()), tool.MultiExtractHandler)
+	s.AddTool(readOnly(tool.NewPageStatsTool()), tool.PageStatsHandler)
 
 	// Input operations (selector-based)
 	s.AddTool(tool.NewSendKeyTool(), tool.SendKeyHandler)
@@ -81,7 +93,7 @@ func main() {
 	s.AddTool(tool.NewScrollTool(), tool.ScrollHandler)
 	s.AddTool(tool.NewTypeTextTool(), tool.TypeTextHandler)
 	s.AddTool(tool.NewPressKeysTool(), tool.PressKeysHandler)
-	s.AddTool(tool.NewWaitTool(), tool.WaitHandler)
+	s.AddTool(readOnly(tool.NewWaitTool()), tool.WaitHandler)
 
 	// Cookie management
 	s.AddTool(tool.NewSetCookieTool(), tool.SetCookieHandler)
@@ -90,8 +102,8 @@ func main() {
 	s.AddTool(tool.NewDownloadFileTool(), tool.DownloadFileHandler)
 	s.AddTool(tool.NewDownloadImageTool(), tool.DownloadImageHandler)
 
-	// Screenshot
-	s.AddTool(tool.NewScreenshotTool(), tool.ScreenshotHandler)
+	// Screenshot (read-only)
+	s.AddTool(readOnly(tool.NewScreenshotTool()), tool.ScreenshotHandler)
 
 	// MCP_TRANSPORT selects the transport: "stdio" (default) speaks JSON-RPC
 	// over stdin/stdout for clients that launch the container as a subprocess

@@ -285,6 +285,14 @@ again. To make pixels line up with click coordinates:
 can be overridden per call. Concurrent tool calls against the same instance are
 serialized internally, so a browser instance is safe to share within a session.
 
+**Read-only annotations:** navigation, screenshot, and DOM/stat inspection tools
+(`navigate`, `navigate-back`/`-forward`/`-multiple`, `screenshot`,
+`get-all-elements`, `get-element-withtext`, `select-element`, `multi-extract`,
+`page-stats`, `system-stats`, `network-check`, `tips`, `wait`) are tagged with the
+MCP `readOnlyHint` annotation, so clients can auto-approve or group them
+separately from tools that change page or instance state (clicks, input,
+`set-cookie`, downloads, `create`/`close`, etc.).
+
 **Diagnostics**: `system-stats`, `network-check`.
 
 `system-stats` reports resource usage: total memory and process count of the
