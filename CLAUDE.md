@@ -102,3 +102,9 @@ truth for safety:
   in chunks and returns a structured summary; no MCP.
 - `skills/explore-site/SKILL.md` — the explore workflow and when to use each
   agent.
+- `skills/yahoo-finance/SKILL.md` — verified URL patterns + selectors for
+  fetching news / quotes / indicators / rankings from finance.yahoo.co.jp via
+  the sandbox (uses the page-stats → multi-extract → navigate-multiple flow).
+- `skills/web-search/SKILL.md` — web search from inside the sandbox: Yahoo!検索
+  first (real URLs), Bing fallback (with the `/ck/a?u=a1<base64>` decode trick);
+  Google is unusable (reCAPTCHA wall).

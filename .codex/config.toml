@@ -1,0 +1,11 @@
+[mcp_servers.browser-sandbox]
+args = [
+    "run",
+    "-i",
+    "--rm",
+    "--init",
+    "--shm-size",
+    "1g",
+    "chromedp-container-mcp:latest",
+]
+command = "docker"
