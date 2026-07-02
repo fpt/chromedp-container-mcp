@@ -27,6 +27,14 @@ container per session and talks JSON-RPC over stdin/stdout:
 docker build -t chromedp-container-mcp:latest .
 ```
 
+Or pull the prebuilt multi-arch image (linux/amd64 + arm64) from GHCR — published
+by CI on every `main` push (`edge`) and version tag (`vX.Y.Z` → `X.Y.Z`, `X.Y`,
+`latest`):
+
+```bash
+docker pull ghcr.io/fpt/chromedp-container-mcp:latest
+```
+
 With the [Claude Code](https://docs.claude.com/en/docs/claude-code) CLI
 (everything after `--` is the command it launches per session):
 
